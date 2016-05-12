@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- Make Chrome Friendly -->
+  <meta charset="UTF-8">
+
+  <!-- Make mobile Friendly -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- AngularJS Library: https://ajax.googleapis.com -->
+  <script src="ajax/libs/angularjs/1.3.14/angular.min.js"></script>
+  <script src="ajax/libs/angularjs/1.3.14/angular-cookies.min.js"></script>
+
+  <!-- JQuery Library: Required for BootstrapJS: https://ajax.googleapis.com -->
+  <script src="ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+
+  <!-- Twitter Bootstrap Library: https://maxcdn.bootstrapcdn.com -->
+  <link rel="stylesheet" href="bootstrap/3.3.4/css/bootstrap.min.css">
+  <!-- https://maxcdn.bootstrapcdn.com -->
+  <script src="bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
+  <!-- Unused: ToastrJS Library -->
+  <!-- <link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.css">
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.js"></script>  -->
+  <script src="clue.js"></script>
+
+  <style>
+  /* Added margins for ease of readability. */
+  .added-margin-bottom{
+    margin-bottom: 5px;
+  }
+  .added-margin-sides{
+    margin-left: 3px;
+    margin-right: 4px;
+  }
+  /* Remove extra padding on small screens / mobile devices. */
+  .col-xs-12{
+    padding-left: 0px;
+    padding-right: 0px;
+  }
+  /* Friendly margins for cozy viewport. */
+  body{
+    margin-top: 13px;
+    margin-bottom: 13px;
+  }
+  /* Blank glyph icon to maintain size of buttons when changing state. */
+  .glyphicon-none:before {
+    color: transparent !important;
+  }
+  </style>
+</head>
+<body data-ng-app="app">
+  <div class="container" data-ng-controller="clueCtrl" id="clueCtrl">
+    <!-- Pre game display -->
+    <div data-ng-hide="isGameStarted">
+
+      <!-- Buttons at top of screen -->
+      <div class="btn-group added-margin-bottom">
+        <!-- Use default clue board -->
+        <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false" data-ng-click="warnChangeSettings()">
+          Select Clue Template <span class="caret"></span>
+        </button>
+        <!-- Buttons in dropdown menu -->
+        <ul class="dropdown-menu" role="menu">
+          <li data-ng-click="initOffice()"><a href="#">Office Clue</a></li>
+          <li data-ng-click="initClassic()"><a href="#">Classic Clue</a></li>
+          <li data-ng-click="initBlank()"><a href="#">Blank Clue</a></li>
+          <li class="divider"></li>
+          <li data-ng-click="tryDeleteValues()"><a href="#"><span class="glyphicon glyphicon-trash"></span> Delete All</a></li>
+        </ul>
+      </div>
+
+      <!-- Other buttons -->
+      <span class="pull-right">
+        <div class="btn-group added-margin-bottom">
+          <!-- Number of players -->
+          <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false" data-ng-click="warnChangeSettings()">
+            Players <span class="badge">{{players}} + You</span> <span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu" role="menu">
+            <li data-ng-click="setNumberOfPlayers($index)" data-ng-repeat="player in generateArrayByLength(8) track by $index" data-ng-if="$index >= 1"><a href="#">{{$index + 1}}</a></li>
+          </ul>
+        </div>
+
+        <!-- Clear values and Start game buttons -->
+        <button data-ng-click="tryClearValues()" class="btn btn-warning added-margin-bottom"><span class="glyphicon glyphicon-trash"></span> Clear All Notes</button>
+        <button data-ng-hide="isGameStarted" data-ng-click="startGame()" class="btn btn-default added-margin-bottom"><span class="glyphicon glyphicon-triangle-right"></span> Start Game</button>
+      </span>
+
+      <!-- Editable text inputs for names of suspects -->
+      <div class="form-group">
+        <h2>Suspects</h2>
+        <!-- Track by index so that there may be multiple blank lines -->
+        <span data-ng-repeat="suspect in suspects track by $index">
+          <div class="input-group added-margin-bottom">
+            <input type="text" class="form-control" placeholder="Enter suspect name" data-ng-model="suspect.name">
+            <span class="input-group-btn">
+              <button class="btn btn-danger" type="button" data-ng-click="spliceArray(suspects, $index)"><span class="glyphicon glyphicon-trash"></span></button>
+            </span>
+          </div>
+        </span>
+        <button data-ng-click="addCharacter()" class="btn btn-default"><span class="glyphicon glyphicon-plus"></span></button>
+
+        <!-- Editable text inputs for names of weapons -->
+        <h2>Weapons</h2>
+        <!-- Track by index so that there may be multiple blank lines -->
+        <span data-ng-repeat="weapon in weapons track by $index">
+          <div class="input-group added-margin-bottom">
+            <input type="text" class="form-control" placeholder="Enter character name" data-ng-model="weapon.name">
+            <span class="input-group-btn">
+              <button class="btn btn-danger" type="button" data-ng-click="spliceArray(weapons, $index)"><span class="glyphicon glyphicon-trash"></span></button>
+            </span>
+          </div>
+        </span>
+        <button data-ng-click="addWeapon()" class="btn btn-default"><span class="glyphicon glyphicon-plus"></span></button>
+
+        <!-- Editable text inputs for names of rooms -->
+        <h2>Rooms</h2>
+        <!-- Track by index so that there may be multiple blank lines -->
+        <span data-ng-repeat="room in rooms track by $index">
+          <div class="input-group added-margin-bottom">
+            <input type="text" class="form-control" placeholder="Enter character name" data-ng-model="room.name">
+            <span class="input-group-btn">
+              <button class="btn btn-danger" type="button" data-ng-click="spliceArray(rooms, $index)"><span class="glyphicon glyphicon-trash"></span></button>
+            </span>
+          </div>
+        </span>
+        <!-- Add margin on the bottom -->
+        <span class="added-margin-bottom">
+          <button data-ng-click="addRoom()" class="btn btn-default"><span class="glyphicon glyphicon-plus"></span></button>
+        </span>
+      </div>
+    </div>
+
+    <!-- mid game display -->
+    <div data-ng-show="isGameStarted">
+      <!-- Pause game button -->
+      <span class="col-xs-12">
+        <button data-ng-click="tryEndGame()" class="btn btn-warning pull-right"><span class="glyphicon glyphicon-pause"></span> Pause Game</button>
+      </span>
+
+      <div class="form-group">
+        <h2>Suspects<span class="pull-right">
+          <!-- Show players about columns -->
+          <span data-ng-repeat="player in generateArrayByLength(players) track by $index">
+            <span class="badge added-margin-sides">P{{$index + 1}}</span>
+          </span>
+        </span></h2>
+
+        <!-- Show suspects -->
+        <span data-ng-repeat="suspect in suspects" class="col-xs-12">
+          <!-- Let user change suspect button states -->
+          <button class="added-margin-bottom" data-ng-class="getItemBtnClass(suspect.classID[0])" data-ng-click="selectItem(suspect, 0)" data-ng-show="suspects[0].visible">
+            <span data-ng-class="getItemSpanClass(suspect.classID[0])"></span> {{suspect.name}} </span></button>
+          <!-- On right side, show note buttons -->
+          <span class="pull-right">
+            <!-- Show buttons, one for each player -->
+            <span data-ng-repeat="button in suspect.classID track by $index" data-ng-if="$index > 0">
+              <button class="added-margin-bottom" data-ng-class="getBtnClass(suspect.classID[$index])" data-ng-click="selectSuspect(suspect, $index)" data-ng-show="suspects[$index].visible"><span data-ng-class="getSpanClass(suspect.classID[$index])"></span></button>
+            </span>
+            <button class="added-margin-bottom btn btn-default" data-ng-click="restoreSuspect()" data-ng-show="showAllSuspects">Clear</button>
+          </span>
+          <br>
+        </span>
+
+        <!-- Show weapons -->
+        <h2>Weapons</h2>
+        <span data-ng-repeat="weapon in weapons" class="col-xs-12">
+          <button class="added-margin-bottom" data-ng-class="getItemBtnClass(weapon.classID[0])" data-ng-click="selectItem(weapon, 0)"><span data-ng-class="getItemSpanClass(weapon.classID[0])"></span> {{weapon.name}}</button>
+          <span class="pull-right">
+            <span data-ng-repeat="button in weapon.classID track by $index" data-ng-if="$index > 0">
+              <button class="added-margin-bottom" data-ng-class="getBtnClass(weapon.classID[$index])" data-ng-click="changeWeapon(weapon, $index)"><span data-ng-class="getSpanClass(weapon.classID[$index])"></span></button>
+            </span>
+          </span>
+          <br>
+        </span>
+
+        <!-- Show rooms -->
+        <h2>Rooms</h2>
+        <span data-ng-repeat="room in rooms" class="col-xs-12">
+          <button class="added-margin-bottom" data-ng-class="getItemBtnClass(room.classID[0])" data-ng-click="selectItem(room, 0)"><span data-ng-class="getItemSpanClass(room.classID[0])"></span> {{room.name}}</button>
+          <span class="pull-right">
+            <span data-ng-repeat="button in room.classID track by $index" data-ng-if="$index > 0">
+              <button class="added-margin-bottom" data-ng-class="getBtnClass(room.classID[$index])" data-ng-click="changeRoom(room, $index)"><span data-ng-class="getSpanClass(room.classID[$index])"></span></button>
+            </span>
+          </span>
+          <br>
+        </span>
+      </div>
+    </div>
+    <!-- Extra padding at bottom of screen -->
+    <br><br><br>
+
+    <!-- Bootstrap Modal to confirm clearing note values -->
+    <div id="clearValuesModal" class="modal fade">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title">Would you like to clear everything?</h4>
+          </div>
+          <div class="modal-body">
+            <p>This will clear all of your clue note data...</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-danger" data-dismiss="modal" data-ng-click="clearValues()">I'm sure</button>
+            <button type="button" class="btn btn-default" data-dismiss="modal">Nope</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap Modal to confirm deleting all values -->
+    <div id="deleteValuesModal" class="modal fade">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title">Would you like to delete everything?</h4>
+          </div>
+          <div class="modal-body">
+            <p>This will delete all of your clue data...<br>
+              This will remove all suspects, weapons and rooms.</p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-danger" data-dismiss="modal" data-ng-click="deleteValues()">I'm sure</button>
+              <button type="button" class="btn btn-default" data-dismiss="modal">Nope</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bootstrap Modal to confirm pausing game -->
+      <div id="endGameModal" class="modal fade">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+              <h4 class="modal-title">Would you like to pause the game?</h4>
+            </div>
+            <div class="modal-body">
+              <p>You can come right back if you want...</p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-danger" data-dismiss="modal" data-ng-click="endGame()">I'm sure</button>
+              <button type="button" class="btn btn-default" data-dismiss="modal">Nope</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+  </html>
